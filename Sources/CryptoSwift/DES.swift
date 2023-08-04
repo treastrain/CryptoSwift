@@ -123,7 +123,7 @@ public final class DES: BlockCipher {
                     let t = row | col
 
                     f = (f << 1) | (f >> 31)
-                    feistelBox[s][t] = UInt32(truncatingBitPattern: f)
+                    feistelBox[s][t] = UInt32(truncatingIfNeeded: f)
                 }
             }
         }
@@ -231,13 +231,13 @@ public final class DES: BlockCipher {
         t = r ^ UInt32(k0 >> 32)
         l ^= feistelBox[7][Int(t) & 0x3F] ^ feistelBox[5][Int(t >> 8) & 0x3F] ^ feistelBox[3][Int(t >> 16) & 0x3F] ^ feistelBox[1][Int(t >> 24) & 0x3F]
 
-        t = ((r << 28) | (r >> 4)) ^ UInt32(truncatingBitPattern: k0)
+        t = ((r << 28) | (r >> 4)) ^ UInt32(truncatingIfNeeded: k0)
         l ^= feistelBox[6][Int(t) & 0x3F] ^ feistelBox[4][Int(t >> 8) & 0x3F] ^ feistelBox[2][Int(t >> 16) & 0x3F] ^ feistelBox[0][Int(t >> 24) & 0x3F]
 
-        t = l ^ UInt32(truncatingBitPattern: k1 >> 32)
+        t = l ^ UInt32(truncatingIfNeeded: k1 >> 32)
         r ^= feistelBox[7][Int(t) & 0x3F] ^ feistelBox[5][Int(t >> 8) & 0x3F] ^ feistelBox[3][Int(t >> 16) & 0x3F] ^ feistelBox[1][Int(t >> 24) & 0x3F]
 
-        t = ((l << 28) | (l >> 4)) ^ UInt32(truncatingBitPattern: k1)
+        t = ((l << 28) | (l >> 4)) ^ UInt32(truncatingIfNeeded: k1)
         r ^= feistelBox[6][Int(t) & 0x3F] ^ feistelBox[4][Int(t >> 8) & 0x3F] ^ feistelBox[2][Int(t >> 16) & 0x3F] ^ feistelBox[0][Int(t >> 24) & 0x3F]
 
         return (l, r)
@@ -264,7 +264,7 @@ public final class DES: BlockCipher {
 
         // rotate halves of permuted key
         let leftRotations = ksRotate(UInt32(permutedKey >> 28))
-        let rightRotations = ksRotate(UInt32(truncatingBitPattern: permutedKey << 4) >> 4)
+        let rightRotations = ksRotate(UInt32(truncatingIfNeeded: permutedKey << 4) >> 4)
 
         for i in 0 ..< 16 {
             let pc2Input = (UInt64(leftRotations[i]) << 28) | UInt64(rightRotations[i])
@@ -277,7 +277,11 @@ public final class DES: BlockCipher {
 }
 
 extension DES: Cipher {
-    public func encrypt<C: Collection>(_ bytes: C) throws -> Array<UInt8> where C.Iterator.Element == UInt8, C.IndexDistance == Int, C.Index == Int, C.SubSequence: Collection, C.SubSequence.Iterator.Element == C.Iterator.Element, C.SubSequence.Index == C.Index, C.SubSequence.IndexDistance == C.IndexDistance {
+    public var keySize: Int {
+        fatalError()
+    }
+
+    public func encrypt<C: Collection>(_ bytes: C) throws -> Array<UInt8> where C.Iterator.Element == UInt8, C.Index == Int, C.SubSequence: Collection, C.SubSequence.Iterator.Element == C.Iterator.Element, C.SubSequence.Index == C.Index {
         for chunk in bytes.batched(by: DES.blockSize) {
             var b = UInt64(bytes: chunk)
             self.initialPermuation(block: &b)
@@ -285,7 +289,7 @@ extension DES: Cipher {
             var left = UInt32(b >> 32)
             left = (left << 1) | (left >> 31)
 
-            var right = UInt32(truncatingBitPattern: b)
+            var right = UInt32(truncatingIfNeeded: b)
             right = (right << 1) | (right >> 31)
 
             for i in 0 ..< 8 {
@@ -301,7 +305,7 @@ extension DES: Cipher {
         return []
     }
 
-    public func decrypt<C: Collection>(_ bytes: C) throws -> Array<UInt8> where C.Iterator.Element == UInt8, C.IndexDistance == Int, C.Index == Int {
+    public func decrypt<C: Collection>(_ bytes: C) throws -> Array<UInt8> where C.Iterator.Element == UInt8, C.Index == Int {
         return []
     }
 }
